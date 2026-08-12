@@ -23,12 +23,27 @@
   let restartDistance = 0;
   let restartSamples = 0;
   let wheelIdleTimer;
+  let cueHideTimer;
+  let cueCycleTimer;
   let settleFrame;
   let pointer = null;
 
   const pad = value => String(value).padStart(2, '0');
   const clamp = index => Math.max(0, Math.min(slides.length - 1, index));
   const behavior = () => reducedMotion.matches ? 'auto' : 'smooth';
+
+  const scheduleEdgeCue = index => {
+    clearTimeout(cueHideTimer);
+    clearTimeout(cueCycleTimer);
+    cue.classList.add('is-hinting');
+
+    cueHideTimer = setTimeout(() => {
+      cue.classList.remove('is-hinting');
+      cueCycleTimer = setTimeout(() => {
+        if (current === index && !navigating) scheduleEdgeCue(index);
+      }, 7000);
+    }, 4600);
+  };
 
   const updateCue = index => {
     const isHome = index === 0;
@@ -37,12 +52,28 @@
     const isCountOnly = !isHome && !isEnd;
 
     cue.classList.toggle('is-initial', isInitial);
+    cue.classList.toggle('is-home', isHome);
+    cue.classList.toggle('is-end', isEnd);
     cue.classList.toggle('is-count-only', isCountOnly);
     cue.classList.toggle('is-edge', isHome || isEnd);
-    cueArrow.hidden = !isInitial;
-    cueLabel.textContent = isEnd ? 'End' : isInitial ? 'Swipe left' : isHome ? 'Home' : '';
+    cueArrow.hidden = isCountOnly;
+    cueArrow.textContent = isEnd ? '→' : '←';
+    cueLabel.textContent = isEnd
+      ? 'End · Swipe right'
+      : isInitial
+        ? 'Swipe left'
+        : isHome
+          ? 'Home · Swipe left'
+          : '';
     cueSeparator.hidden = isCountOnly;
     cueCount.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
+
+    if (isHome || isEnd) scheduleEdgeCue(index);
+    else {
+      clearTimeout(cueHideTimer);
+      clearTimeout(cueCycleTimer);
+      cue.classList.remove('is-hinting');
+    }
   };
 
   const resetWheelGesture = () => {

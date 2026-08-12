@@ -101,7 +101,7 @@ body {
 .navigation-cue {
   position: fixed;
   z-index: 10;
-  right: max(24px, env(safe-area-inset-right));
+  left: 50%;
   bottom: max(18px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
@@ -114,7 +114,8 @@ body {
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0.58;
+  opacity: 0.14;
+  transform: translateX(-50%);
   transition: opacity 280ms ease, transform 280ms ease;
 }
 
@@ -123,6 +124,10 @@ body {
 }
 
 .navigation-cue.is-edge {
+  opacity: 0.14;
+}
+
+.navigation-cue.is-edge.is-hinting {
   opacity: 0.62;
 }
 
@@ -134,8 +139,28 @@ body {
   letter-spacing: 0;
 }
 
-.navigation-cue.is-initial .cue-arrow {
-  animation: cue-left 1.8s ease-in-out 3;
+.navigation-cue.is-home.is-hinting .cue-arrow {
+  animation: cue-left 1.8s ease-in-out 2;
+}
+
+.navigation-cue.is-end #cueLabel {
+  order: 1;
+}
+
+.navigation-cue.is-end .cue-arrow {
+  order: 2;
+}
+
+.navigation-cue.is-end #cueSeparator {
+  order: 3;
+}
+
+.navigation-cue.is-end #cueCount {
+  order: 4;
+}
+
+.navigation-cue.is-end.is-hinting .cue-arrow {
+  animation: cue-right 1.8s ease-in-out 2;
 }
 
 .navigation-cue.is-count-only #cueLabel,
@@ -147,7 +172,12 @@ body {
 
 @keyframes cue-left {
   0%, 100% { transform: translateX(0); opacity: 0.45; }
-  50% { transform: translateX(-5px); opacity: 1; }
+  50% { transform: translateX(-8px); opacity: 1; }
+}
+
+@keyframes cue-right {
+  0%, 100% { transform: translateX(0); opacity: 0.45; }
+  50% { transform: translateX(8px); opacity: 1; }
 }
 
 @media (max-width: 600px) {
@@ -167,7 +197,6 @@ body {
   }
 
   .navigation-cue {
-    right: max(12px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
     font-size: 9px;
   }
@@ -178,7 +207,8 @@ body {
     scroll-behavior: auto;
   }
 
-  .navigation-cue.is-initial .cue-arrow {
+  .navigation-cue.is-home .cue-arrow,
+  .navigation-cue.is-end .cue-arrow {
     animation: none;
   }
 }
