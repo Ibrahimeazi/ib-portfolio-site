@@ -8,7 +8,7 @@
   <link rel="preload" as="image" href="slides/slide-01.png?v=20260812-2">
   <link rel="preload" as="image" href="slides/slide-02.png">
   <link rel="icon" href="assets/favicon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css?v=20260812-1">
+  <link rel="stylesheet" href="styles.css?v=20260812-2">
   <title>Ibrahim Bilau | Portfolio</title>
 </head>
 <body>
@@ -29,6 +29,17 @@
       <img src="icons/github.svg" alt="">
     </a>
   </nav>
+
+  <button class="edge-nav edge-nav--previous" id="previousSlide" type="button" aria-label="Previous slide" aria-controls="deck" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 5 8 12l7 7"/>
+    </svg>
+  </button>
+  <button class="edge-nav edge-nav--next" id="nextSlide" type="button" aria-label="Next slide" aria-controls="deck">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 5 7 7-7 7"/>
+    </svg>
+  </button>
 
   <div class="navigation-cue is-initial is-edge is-hinting" id="navigationCue" role="status" aria-live="polite">
     <span class="cue-arrow" id="cueArrow" aria-hidden="true">←</span>
@@ -58,6 +69,6 @@
     <section class="slide" id="slide-18" aria-label="Slide 18 of 18: Credentials"><img src="slides/slide-18.png" alt="Ibrahim Bilau credentials" loading="lazy" draggable="false"></section>
   </main>
 
-  <script src="main.js?v=20260812-1" defer></script>
+  <script src="main.js?v=20260812-2" defer></script>
 </body>
 </html>

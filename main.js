@@ -6,6 +6,8 @@
   const cueLabel = document.querySelector('#cueLabel');
   const cueSeparator = document.querySelector('#cueSeparator');
   const cueCount = document.querySelector('#cueCount');
+  const previousSlide = document.querySelector('#previousSlide');
+  const nextSlide = document.querySelector('#nextSlide');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
   let current = 0;
@@ -31,6 +33,11 @@
   const pad = value => String(value).padStart(2, '0');
   const clamp = index => Math.max(0, Math.min(slides.length - 1, index));
   const behavior = () => reducedMotion.matches ? 'auto' : 'smooth';
+
+  const updateEdgeControls = index => {
+    previousSlide.hidden = index === 0;
+    nextSlide.hidden = index === slides.length - 1;
+  };
 
   const scheduleEdgeCue = index => {
     clearTimeout(cueHideTimer);
@@ -67,6 +74,7 @@
           : '';
     cueSeparator.hidden = isCountOnly;
     cueCount.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
+    updateEdgeControls(index);
 
     if (isHome || isEnd) scheduleEdgeCue(index);
     else {
@@ -205,6 +213,16 @@
     if (!step) return;
     goTo((navigating ? target : current) + step);
   };
+
+  const activateEdgeControl = (button, direction) => {
+    button.classList.remove('is-pressed');
+    requestAnimationFrame(() => button.classList.add('is-pressed'));
+    setTimeout(() => button.classList.remove('is-pressed'), 180);
+    requestStep(direction);
+  };
+
+  previousSlide.addEventListener('click', () => activateEdgeControl(previousSlide, -1));
+  nextSlide.addEventListener('click', () => activateEdgeControl(nextSlide, 1));
 
   deck.addEventListener('wheel', event => {
     event.preventDefault();
