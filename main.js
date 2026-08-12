@@ -15,6 +15,13 @@
   let wheelGesture = false;
   let wheelTriggered = false;
   let wheelDistance = 0;
+  let wheelDirection = 0;
+  let wheelTriggeredAt = -Infinity;
+  let lastWheelAt = -Infinity;
+  let lastWheelMagnitude = 0;
+  let restartDirection = 0;
+  let restartDistance = 0;
+  let restartSamples = 0;
   let wheelIdleTimer;
   let settleFrame;
   let pointer = null;
@@ -38,26 +45,79 @@
     cueCount.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
   };
 
+  const resetWheelGesture = () => {
+    wheelGesture = false;
+    wheelTriggered = false;
+    wheelDistance = 0;
+    wheelDirection = 0;
+    lastWheelMagnitude = 0;
+    restartDirection = 0;
+    restartDistance = 0;
+    restartSamples = 0;
+  };
+
   const noteWheelActivity = delta => {
+    const now = performance.now();
+    const direction = Math.sign(delta);
+    const magnitude = Math.abs(delta);
+
+    if (now - lastWheelAt > 100) resetWheelGesture();
+    lastWheelAt = now;
+
     clearTimeout(wheelIdleTimer);
-    wheelIdleTimer = setTimeout(() => {
-      wheelGesture = false;
-      wheelTriggered = false;
-      wheelDistance = 0;
-    }, 240);
+    wheelIdleTimer = setTimeout(resetWheelGesture, 100);
 
     if (!wheelGesture) {
       wheelGesture = true;
       wheelDistance = 0;
     }
 
-    if (wheelTriggered) return 0;
+    if (!wheelTriggered) {
+      wheelDistance += delta;
+      lastWheelMagnitude = magnitude;
+      if (Math.abs(wheelDistance) < 24) return 0;
 
-    wheelDistance += delta;
-    if (Math.abs(wheelDistance) < 24) return 0;
+      wheelTriggered = true;
+      wheelDirection = Math.sign(wheelDistance);
+      wheelTriggeredAt = now;
+      return wheelDirection;
+    }
 
-    wheelTriggered = true;
-    return Math.sign(wheelDistance);
+    // A Mac trackpad keeps emitting decaying momentum events after a swipe.
+    // Only rearm when a later input has a sustained acceleration pattern,
+    // which identifies a new physical swipe without counting the momentum.
+    const pastRefractoryPeriod = now - wheelTriggeredAt >= 220;
+    const changedDirection = direction !== wheelDirection;
+    const accelerated = magnitude >= 4 && magnitude > lastWheelMagnitude * 1.15;
+    const restartStarted = pastRefractoryPeriod &&
+      magnitude >= 4 &&
+      (changedDirection || accelerated);
+
+    if (!restartSamples && restartStarted) {
+      restartDirection = direction;
+      restartDistance = magnitude;
+      restartSamples = 1;
+    } else if (restartSamples &&
+      direction === restartDirection &&
+      magnitude >= lastWheelMagnitude * 1.05) {
+      restartDistance += magnitude;
+      restartSamples += 1;
+    } else if (restartSamples) {
+      restartDirection = 0;
+      restartDistance = 0;
+      restartSamples = 0;
+    }
+
+    lastWheelMagnitude = magnitude;
+
+    if (restartSamples < 3 || restartDistance < 24) return 0;
+
+    wheelDirection = restartDirection;
+    wheelTriggeredAt = now;
+    restartDirection = 0;
+    restartDistance = 0;
+    restartSamples = 0;
+    return wheelDirection;
   };
 
   const finishNavigation = index => {
