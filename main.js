@@ -13,9 +13,8 @@
   let navigating = false;
   let hasNavigated = false;
   let wheelGesture = false;
-  let wheelDirection = 0;
-  let lastWheelMagnitude = 0;
-  let lastWheelTriggerAt = -Infinity;
+  let wheelTriggered = false;
+  let wheelDistance = 0;
   let wheelIdleTimer;
   let settleFrame;
   let pointer = null;
@@ -39,31 +38,26 @@
     cueCount.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
   };
 
-  const noteWheelActivity = (direction, magnitude) => {
-    const now = performance.now();
-    const directionChanged = wheelGesture && direction !== wheelDirection;
-    const gestureRestarted = wheelGesture &&
-      direction === wheelDirection &&
-      now - lastWheelTriggerAt >= 160 &&
-      magnitude >= 18 &&
-      magnitude > lastWheelMagnitude * 1.8;
-    const shouldNavigate = !wheelGesture || directionChanged || gestureRestarted;
-
+  const noteWheelActivity = delta => {
     clearTimeout(wheelIdleTimer);
     wheelIdleTimer = setTimeout(() => {
       wheelGesture = false;
-      wheelDirection = 0;
-      lastWheelMagnitude = 0;
-    }, 120);
+      wheelTriggered = false;
+      wheelDistance = 0;
+    }, 240);
 
-    lastWheelMagnitude = magnitude;
-    if (shouldNavigate) {
+    if (!wheelGesture) {
       wheelGesture = true;
-      wheelDirection = direction;
-      lastWheelTriggerAt = now;
+      wheelDistance = 0;
     }
 
-    return shouldNavigate;
+    if (wheelTriggered) return 0;
+
+    wheelDistance += delta;
+    if (Math.abs(wheelDistance) < 24) return 0;
+
+    wheelTriggered = true;
+    return Math.sign(wheelDistance);
   };
 
   const finishNavigation = index => {
@@ -124,12 +118,8 @@
   deck.addEventListener('wheel', event => {
     event.preventDefault();
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(delta) < 8) return;
-
-    const direction = Math.sign(delta);
-    const magnitude = Math.abs(delta);
-    if (!noteWheelActivity(direction, magnitude)) return;
-
+    const direction = noteWheelActivity(delta);
+    if (!direction) return;
     requestStep(direction);
   }, { passive: false });
 
