@@ -8,6 +8,8 @@
   const cueCount = document.querySelector('#cueCount');
   const previousSlide = document.querySelector('#previousSlide');
   const nextSlide = document.querySelector('#nextSlide');
+  const closingActions = document.querySelector('#closingActions');
+  const returnHome = document.querySelector('#returnHome');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
   let current = 0;
@@ -21,9 +23,6 @@
   let wheelTriggeredAt = -Infinity;
   let lastWheelAt = -Infinity;
   let lastWheelMagnitude = 0;
-  let restartDirection = 0;
-  let restartDistance = 0;
-  let restartSamples = 0;
   let wheelIdleTimer;
   let cueHideTimer;
   let cueCycleTimer;
@@ -37,6 +36,7 @@
   const updateEdgeControls = index => {
     previousSlide.hidden = index === 0;
     nextSlide.hidden = index === slides.length - 1;
+    closingActions.hidden = index !== slides.length - 1;
   };
 
   const scheduleEdgeCue = index => {
@@ -90,9 +90,6 @@
     wheelDistance = 0;
     wheelDirection = 0;
     lastWheelMagnitude = 0;
-    restartDirection = 0;
-    restartDistance = 0;
-    restartSamples = 0;
   };
 
   const noteWheelActivity = delta => {
@@ -121,42 +118,8 @@
       wheelTriggeredAt = now;
       return wheelDirection;
     }
-
-    // A Mac trackpad keeps emitting decaying momentum events after a swipe.
-    // Only rearm when a later input has a sustained acceleration pattern,
-    // which identifies a new physical swipe without counting the momentum.
-    const pastRefractoryPeriod = now - wheelTriggeredAt >= 220;
-    const changedDirection = direction !== wheelDirection;
-    const accelerated = magnitude >= 4 && magnitude > lastWheelMagnitude * 1.15;
-    const restartStarted = pastRefractoryPeriod &&
-      magnitude >= 4 &&
-      (changedDirection || accelerated);
-
-    if (!restartSamples && restartStarted) {
-      restartDirection = direction;
-      restartDistance = magnitude;
-      restartSamples = 1;
-    } else if (restartSamples &&
-      direction === restartDirection &&
-      magnitude >= lastWheelMagnitude * 1.05) {
-      restartDistance += magnitude;
-      restartSamples += 1;
-    } else if (restartSamples) {
-      restartDirection = 0;
-      restartDistance = 0;
-      restartSamples = 0;
-    }
-
     lastWheelMagnitude = magnitude;
-
-    if (restartSamples < 3 || restartDistance < 24) return 0;
-
-    wheelDirection = restartDirection;
-    wheelTriggeredAt = now;
-    restartDirection = 0;
-    restartDistance = 0;
-    restartSamples = 0;
-    return wheelDirection;
+    return 0;
   };
 
   const finishNavigation = index => {
@@ -208,6 +171,20 @@
     waitUntilSettled(next);
   };
 
+  const syncFromHash = () => {
+    const requested = slides.findIndex(slide => `#${slide.id}` === location.hash);
+    if (requested < 0 || requested === current) return;
+    cancelAnimationFrame(settleFrame);
+    navigating = false;
+    current = requested;
+    target = requested;
+    updateCue(requested);
+    const priorBehavior = deck.style.scrollBehavior;
+    deck.style.scrollBehavior = 'auto';
+    deck.scrollLeft = requested * deck.clientWidth;
+    requestAnimationFrame(() => { deck.style.scrollBehavior = priorBehavior; });
+  };
+
   const requestStep = direction => {
     const step = Math.sign(direction);
     if (!step) return;
@@ -223,6 +200,9 @@
 
   previousSlide.addEventListener('click', () => activateEdgeControl(previousSlide, -1));
   nextSlide.addEventListener('click', () => activateEdgeControl(nextSlide, 1));
+  returnHome.addEventListener('click', () => goTo(0));
+  window.addEventListener('hashchange', syncFromHash);
+  window.addEventListener('popstate', syncFromHash);
 
   deck.addEventListener('wheel', event => {
     event.preventDefault();
@@ -285,7 +265,10 @@
   target = current;
   updateCue(current);
   requestAnimationFrame(() => {
-    deck.scrollTo({ left: current * deck.clientWidth, behavior: 'auto' });
+    const priorBehavior = deck.style.scrollBehavior;
+    deck.style.scrollBehavior = 'auto';
+    deck.scrollLeft = current * deck.clientWidth;
+    requestAnimationFrame(() => { deck.style.scrollBehavior = priorBehavior; });
     history.replaceState(null, '', `#${slides[current].id}`);
   });
 })();
